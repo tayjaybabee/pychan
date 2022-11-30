@@ -118,7 +118,7 @@ def test_get_threads(fourchan: FourChan) -> None:
 
 
 def test_get_thread_unparsable_board(fourchan: FourChan) -> None:
-    assert len(list(fourchan.get_threads("f"))) == 0
+    assert not list(fourchan.get_threads("f"))
 
 
 def test_get_threads_http_errors(fourchan: FourChan, fourchan_no_raises: FourChan) -> None:
@@ -133,7 +133,7 @@ def test_get_threads_http_errors(fourchan: FourChan, fourchan_no_raises: FourCha
 
     def helper_no_raises() -> None:
         actual = list(fourchan_no_raises.get_threads(board))
-        assert len(actual) == 0
+        assert not actual
         responses.assert_call_count(url=f"https://boards.4channel.org/{board}", count=1)
         responses.assert_call_count(url=f"https://boards.4channel.org/{board}/2", count=0)
 
@@ -181,7 +181,7 @@ def test_get_archived_threads_http_errors(fourchan: FourChan, fourchan_no_raises
 
     def helper_no_raises() -> None:
         actual = list(fourchan_no_raises.get_archived_threads(board))
-        assert len(actual) == 0
+        assert not actual
         responses.assert_call_count(url=url, count=1)
 
     def helper() -> None:
@@ -268,10 +268,11 @@ def test_get_post_from_moderator(fourchan: FourChan) -> None:
 
     responses.add(
         responses.GET,
-        f"https://boards.4channel.org/pol/thread/259848258/",
+        "https://boards.4channel.org/pol/thread/259848258/",
         status=200,
-        body=test_data
+        body=test_data,
     )
+
 
     actual = fourchan.get_posts(Thread("pol", 259848258))
     assert len(actual) == 1
@@ -298,7 +299,7 @@ def test_get_posts_http_errors(fourchan: FourChan, fourchan_no_raises: FourChan)
 
     def helper_no_raises() -> None:
         actual = list(fourchan_no_raises.get_posts(thread))
-        assert len(actual) == 0
+        assert not actual
 
     def helper() -> None:
         with pytest.raises(HTTPError):
@@ -347,7 +348,7 @@ def test_search(fourchan: FourChan) -> None:
 
 
 def test_search_unparsable_board(fourchan: FourChan) -> None:
-    assert len(list(fourchan.search(board="f", text=""))) == 0
+    assert not list(fourchan.search(board="f", text=""))
 
 
 def test_search_http_errors(fourchan: FourChan, fourchan_no_raises: FourChan) -> None:
@@ -365,7 +366,7 @@ def test_search_http_errors(fourchan: FourChan, fourchan_no_raises: FourChan) ->
 
     def helper_no_raises() -> None:
         actual = list(fourchan_no_raises.search(board=board, text=search_text))
-        assert len(actual) == 0
+        assert not actual
 
     def helper() -> None:
         with pytest.raises(HTTPError):
