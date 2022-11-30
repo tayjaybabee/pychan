@@ -20,9 +20,22 @@ class Thread:
         self.is_stickied = is_stickied
         self.is_closed = is_closed
         self.is_archived = is_archived
+        
+        # Assign the URL to an easily accessible attribute
+        self.URL = self.__build_url()
+        
+    def __build_url(self) -> str:
+        """
+        Build the URL for the thread so we can assign it for outside class access.
+        
+        Returns:
+          
+          The thread URL as a :class:`str`
+        """
+        return f'https://boards.4channel.org/{self.board}/thread/{self.number})'
 
     def __repr__(self) -> str:
-        return f"Thread(https://boards.4channel.org/{self.board}/thread/{self.number})"
+        return f"Thread({self.URL})"
 
     def __str__(self) -> str:
         return repr(self)
