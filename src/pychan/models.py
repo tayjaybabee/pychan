@@ -38,13 +38,14 @@ class Thread:
 
     def __iter__(self) -> Generator[Any, None, None]:
         # We implement __iter__ so this class can be serialized as a tuple
-        for field in [self.board,
-                      self.number,
-                      self.title,
-                      self.is_stickied,
-                      self.is_closed,
-                      self.is_archived]:
-            yield field
+        yield from [
+            self.board,
+            self.number,
+            self.title,
+            self.is_stickied,
+            self.is_closed,
+            self.is_archived,
+        ]
 
     def __copy__(self):
         return Thread(
@@ -84,15 +85,11 @@ class File:
         return hash(self.url)
 
     def __eq__(self, other: Any) -> bool:
-        if isinstance(other, File):
-            return self.url == other.url
-        else:
-            return False
+        return self.url == other.url if isinstance(other, File) else False
 
     def __iter__(self) -> Generator[Any, None, None]:
         # We implement __iter__ so this class can be serialized as a tuple
-        for field in [self.url, self.name, self.size, self.dimensions]:
-            yield field
+        yield from [self.url, self.name, self.size, self.dimensions]
 
     def __copy__(self):
         return File(self.url, self.name, self.size, self.dimensions)
@@ -125,9 +122,7 @@ class Poster:
         return self._mod_indicator or self.name != "Anonymous"
 
     def __repr__(self) -> str:
-        return "Poster(name={}, is_moderator={}, id={}, flag={})".format(
-            self.name, self.is_moderator, self.id, self.flag
-        )
+        return f"Poster(name={self.name}, is_moderator={self.is_moderator}, id={self.id}, flag={self.flag})"
 
     def __str__(self) -> str:
         return repr(self)
@@ -143,8 +138,7 @@ class Poster:
 
     def __iter__(self) -> Generator[Any, None, None]:
         # We implement __iter__ so this class can be serialized as a tuple
-        for field in [self.name, self._mod_indicator, self.id, self.flag]:
-            yield field
+        yield from [self.name, self._mod_indicator, self.id, self.flag]
 
     def __copy__(self):
         return Poster(self.name, mod_indicator=self._mod_indicator, id=self.id, flag=self.flag)
@@ -181,9 +175,7 @@ class Post:
         self.replies: list[Post] = replies if replies is not None else []
 
     def __repr__(self) -> str:
-        return "Post(https://boards.4channel.org/{})".format(
-            f"{self.thread.board}/thread/{self.thread.number}#p{self.number}"
-        )
+        return f"Post(https://boards.4channel.org/{self.thread.board}/thread/{self.thread.number}#p{self.number})"
 
     def __str__(self) -> str:
         return repr(self)
@@ -198,20 +190,17 @@ class Post:
             return False
 
     def __iter__(self) -> Generator[Any, None, None]:
-        # We implement __iter__ so this class can be serialized as a tuple
-        fields = list(self.thread) + [self.number, self.timestamp] + \
-                 list(self.poster) + \
-                 [
-                     self.text,
-                     self.is_original_post,
-                     None if self.file is None else self.file.url,
-                     None if self.file is None else self.file.name,
-                     None if self.file is None else self.file.size,
-                     None if self.file is None else self.file.dimensions,
-                     len(self.replies)
-                  ]
-        for field in fields:
-            yield field
+        yield from list(self.thread) + [self.number, self.timestamp] + list(
+            self.poster
+        ) + [
+            self.text,
+            self.is_original_post,
+            None if self.file is None else self.file.url,
+            None if self.file is None else self.file.name,
+            None if self.file is None else self.file.size,
+            None if self.file is None else self.file.dimensions,
+            len(self.replies),
+        ]
 
     def __copy__(self):
         return Post(

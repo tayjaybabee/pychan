@@ -18,10 +18,7 @@ _limiter = Limiter(RequestRate(1, Duration.SECOND))
 
 def _find_first(selectable_entity: Tag, selector: str) -> Optional[Tag]:
     ret = selectable_entity.select(selector)
-    if ret is not None and len(ret) > 0:
-        return ret[0]
-    else:
-        return None
+    return ret[0] if ret is not None and len(ret) > 0 else None
 
 
 def _get_attribute(tag: Optional[Tag], attribute: str) -> Optional[str]:
@@ -35,15 +32,11 @@ def _get_attribute(tag: Optional[Tag], attribute: str) -> Optional[str]:
 
 
 def _safe_id_parse(text: Optional[str], *, offset: int) -> Optional[int]:
-    # This function is meant to parse ID attribute values from 4chan's HTML into numeric values
-    # containing just the raw ID number. For example, _safe_id_parse("t-12345678", offset=1) should
-    # return 12345678.
-    if text is not None and len(text) > offset:
-        try:
-            return int(text[offset:])
-        except Exception:
-            return None
-    else:
+    if text is None or len(text) <= offset:
+        return None
+    try:
+        return int(text[offset:])
+    except Exception:
         return None
 
 
@@ -97,11 +90,11 @@ class FourChan:
         file_anchor = _find_first(post_html_element, ".fileText a")
         href = _get_attribute(file_anchor, "href")
         if file_text is not None and file_anchor is not None and href is not None:
-            href = "https:" + href if href.startswith("//") else href
+            href = f"https:{href}" if href.startswith("//") else href
             metadata = re.search(r"\((.+), ([0-9]+x[0-9]+)\)", file_text.text)
             if metadata is not None and len(metadata.groups()) > 1:
-                size = metadata.group(1)
-                dimensions = metadata.group(2).split("x")
+                size = metadata[1]
+                dimensions = metadata[2].split("x")
                 return File(href, file_anchor.text, size, (int(dimensions[0]), int(dimensions[1])))
             else:
                 message = f"No file metadata could not be parsed from {file_text.text}"
@@ -120,9 +113,8 @@ class FourChan:
         flag = _get_attribute(_find_first(post_html_element, ".flag"), "title")
         if name is not None:
             return Poster(name, mod_indicator=mod, id=uid, flag=flag)
-        else:
-            self._logger.debug(f"No poster was discovered in {post_html_element}")
-            return None
+        self._logger.debug(f"No poster was discovered in {post_html_element}")
+        return None
 
     def _parse_post_from_html(self, thread: Thread, post_html_element: Tag) -> Optional[Post]:
         self._logger.debug(f"Attempting to parse a Post out of {post_html_element}...")
@@ -258,9 +250,10 @@ class FourChan:
         def get(page_number: int) -> Optional[Response]:
             suffix = f"/{page_number}" if page_number > 1 else ""
             return self._request_helper(
-                f"https://boards.4channel.org/{sanitized_board}" + suffix,
-                expect_404=page_number != 1
+                f"https://boards.4channel.org/{sanitized_board}{suffix}",
+                expect_404=page_number != 1,
             )
+
 
         seen_thread_numbers = set()
 
@@ -349,8 +342,9 @@ class FourChan:
 
         self._logger.debug(f"Fetching posts for {t}...")
         response = self._request_helper(
-            "https://boards.4channel.org/{}/thread/{}/".format(t.board, t.number)
+            f"https://boards.4channel.org/{t.board}/thread/{t.number}/"
         )
+
         if response is None:
             return []
 
@@ -367,8 +361,9 @@ class FourChan:
                         # currently beyond the scope of this function's implementation
                         quoted_post_number = _safe_id_parse(href, offset=2)
                         for ret_post in ret:
-                            if ret_post.number == quoted_post_number and \
-                                    not any([r.number == p.number for r in ret_post.replies]):
+                            if ret_post.number == quoted_post_number and all(
+                                r.number != p.number for r in ret_post.replies
+                            ):
                                 ret_post.replies.append(p)
                                 break
 
